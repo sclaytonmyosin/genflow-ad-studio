@@ -1,4 +1,4 @@
-.PHONY: install install-backend install-frontend setup setup-gcs dev dev-backend dev-frontend stop build clean reset-db check check-assets help test test-api generate-samples deploy doctor
+.PHONY: install install-backend install-frontend setup setup-gcs dev dev-backend dev-frontend stop build clean reset-db check check-assets help test test-api smoke-agent generate-samples deploy doctor
 
 # ─── Config ──────────────────────────────────────
 # Secrets resolution order: Doppler (if `doppler setup` was run in this repo)
@@ -40,6 +40,7 @@ help:
 	@echo "    make check          - Type checks (backend + frontend + assets)"
 	@echo "    make test           - Full system test (API + frontend + auth + assets)"
 	@echo "    make test-api       - Quick API smoke test (requires running backend)"
+	@echo "    make smoke-agent    - End-to-end LLM agent smoke (uses live model)"
 	@echo ""
 	@echo "  Cleanup:"
 	@echo "    make clean          - Remove build artifacts and venvs"
@@ -161,6 +162,10 @@ doctor:
 # ─── Test ────────────────────────────────────────
 test:
 	@bash scripts/test_system.sh
+
+smoke-agent:
+	@cd backend && . .venv/bin/activate && \
+	$(RUN) python ../scripts/smoke_agent.py
 
 test-api:
 	@echo "Testing API endpoints..."

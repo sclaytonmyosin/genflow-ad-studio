@@ -36,22 +36,27 @@ async def chat_with_agent(request: ChatRequest) -> ChatResponse:
             parts=[Part.from_text(text=request.message)]
         )
         
-        messages = []
-        # run_async requires keyword arguments
         response_text = ""
-        steps = []
-        
+        steps: list[str] = []
+
         async for event in runner.run_async(
             user_id=user_id,
             session_id=session_id,
-            new_message=new_message
+            new_message=new_message,
         ):
-            if hasattr(event, "message") and event.message and hasattr(event.message, "parts"):
-                for part in event.message.parts:
-                    if part.text:
-                        response_text += part.text
-            elif hasattr(event, "tool_call"):
-                steps.append(f"Calling tool: {event.tool_call}")
+            # ADK Event exposes parts under event.content (not event.message);
+            # text and function_call live alongside one another on each Part.
+            content = getattr(event, "content", None)
+            if content is None:
+                continue
+            for part in getattr(content, "parts", None) or []:
+                text = getattr(part, "text", None)
+                if text:
+                    response_text += text
+                fn_call = getattr(part, "function_call", None)
+                if fn_call is not None:
+                    name = getattr(fn_call, "name", "tool")
+                    steps.append(f"Calling tool: {name}")
 
         return ChatResponse(response=response_text or "No response", steps=steps)
     except Exception as e:

@@ -7,6 +7,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+# Must run before any google-* import so ADC is materialized from
+# GOOGLE_APPLICATION_CREDENTIALS_JSON when running under Doppler / Cloud Run.
+from app.utils import bootstrap  # noqa: F401
+
 from app.api import assets, bulk, config_api, input, jobs, logs, pipeline, review, chat
 from app.api.health import router as health_router
 from app.db_migrate import migrate_from_json
