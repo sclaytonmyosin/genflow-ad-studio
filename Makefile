@@ -111,6 +111,7 @@ dev:
 
 dev-backend:
 	cd backend && . .venv/bin/activate && \
+	LANGFUSE_RELEASE=$$(git rev-parse --short HEAD 2>/dev/null || echo dev) \
 	$(RUN) uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 dev-frontend:
