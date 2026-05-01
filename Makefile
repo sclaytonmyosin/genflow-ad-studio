@@ -1,8 +1,18 @@
-.PHONY: install install-backend install-frontend setup setup-gcs dev dev-backend dev-frontend stop build clean reset-db check check-assets help test test-api generate-samples deploy
+.PHONY: install install-backend install-frontend setup setup-gcs dev dev-backend dev-frontend stop build clean reset-db check check-assets help test test-api generate-samples deploy doctor
 
 # ─── Config ──────────────────────────────────────
+# Secrets resolution order: Doppler (if `doppler setup` was run in this repo)
+# falls back to .env. Run `make doctor` to see which source is active.
+DOPPLER_AVAILABLE := $(shell command -v doppler >/dev/null 2>&1 && doppler configure get config --plain 2>/dev/null)
+ifeq ($(strip $(DOPPLER_AVAILABLE)),)
+RUN := 
 PROJECT_ID ?= $(shell grep '^PROJECT_ID=' .env 2>/dev/null | cut -d= -f2)
 GCS_BUCKET ?= $(shell grep '^GCS_BUCKET_NAME=' .env 2>/dev/null | cut -d= -f2)
+else
+RUN := doppler run --
+PROJECT_ID ?= $(shell doppler secrets get PROJECT_ID --plain 2>/dev/null || grep '^PROJECT_ID=' .env 2>/dev/null | cut -d= -f2)
+GCS_BUCKET ?= $(shell doppler secrets get GCS_BUCKET_NAME --plain 2>/dev/null || grep '^GCS_BUCKET_NAME=' .env 2>/dev/null | cut -d= -f2)
+endif
 
 # Default target
 help:
@@ -21,6 +31,9 @@ help:
 	@echo "    make dev-backend    - Run FastAPI backend only (port 8000)"
 	@echo "    make dev-frontend   - Run Vite frontend only (port 3000)"
 	@echo "    make stop           - Kill processes on ports 8000 and 3000"
+	@echo ""
+	@echo "  Diagnostics:"
+	@echo "    make doctor         - Show env source (doppler vs .env), versions, missing pieces"
 	@echo ""
 	@echo "  Build & Test:"
 	@echo "    make build          - Build frontend for production"
@@ -97,10 +110,10 @@ dev:
 
 dev-backend:
 	cd backend && . .venv/bin/activate && \
-	uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+	$(RUN) uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 dev-frontend:
-	cd frontend && npm run dev
+	cd frontend && $(RUN) npm run dev
 
 # ─── Build ───────────────────────────────────────
 build:
@@ -130,6 +143,20 @@ check-assets:
 	assets=list(Path('asset').glob('*.webp')) if Path('asset').is_dir() else []; \
 	print(f'  {len(assets)} diagram assets found') if assets else None; \
 	print('  Assets OK')"
+
+# ─── Doctor ─────────────────────────────────────
+doctor:
+	@echo "Genflow Ad Studio — environment health"
+	@echo "  Doppler CLI    : $$(command -v doppler >/dev/null 2>&1 && doppler --version || echo 'NOT INSTALLED')"
+	@echo "  Doppler scope  : $$(doppler configure get config --plain 2>/dev/null || echo 'not configured for this dir')"
+	@echo "  Secret source  : $$(if [ -n '$(DOPPLER_AVAILABLE)' ]; then echo doppler; else echo .env; fi)"
+	@echo "  PROJECT_ID     : $(PROJECT_ID)"
+	@echo "  GCS_BUCKET     : $(GCS_BUCKET)"
+	@echo "  Python venv    : $$(test -f backend/.venv/bin/python && backend/.venv/bin/python --version || echo MISSING)"
+	@echo "  Node modules   : $$(test -d frontend/node_modules && echo present || echo MISSING)"
+	@if [ -f service-account.json ] && ! grep -q '^service-account.json' .gitignore; then \
+		echo "  WARNING: service-account.json present and not gitignored"; \
+	fi
 
 # ─── Test ────────────────────────────────────────
 test:

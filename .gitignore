@@ -2,6 +2,15 @@
 .env
 .env.local
 
+# Secrets - never commit credential files
+service-account.json
+*service-account*.json
+*-credentials*.json
+*.key.json
+*.pem
+gcp-key*.json
+.modal.toml
+
 # AI agent tooling (local-only config and state)
 .claude/
 .agents/
