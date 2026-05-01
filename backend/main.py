@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api import assets, bulk, config_api, input, jobs, logs, pipeline, review
+from app.api import assets, bulk, config_api, input, jobs, logs, pipeline, review, chat
 from app.api.health import router as health_router
 from app.db_migrate import migrate_from_json
 from app.dependencies import get_broadcaster, get_database, get_job_store, get_task_runner
@@ -76,6 +76,7 @@ app.include_router(assets.router)
 app.include_router(config_api.router)
 app.include_router(input.router)
 app.include_router(logs.router)
+app.include_router(chat.router)
 
 # Serve production frontend build if available
 _static_path = _backend_dir / "static"
