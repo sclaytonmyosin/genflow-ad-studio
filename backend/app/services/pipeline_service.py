@@ -13,6 +13,26 @@ from app.services.stitch_service import StitchService
 from app.services.storyboard_service import StoryboardService
 from app.services.video_service import VideoService
 
+try:
+    from langfuse import get_client, observe, propagate_attributes
+except ImportError:  # pragma: no cover - langfuse optional at runtime
+    from contextlib import contextmanager
+
+    def observe(*_args, **_kwargs):  # type: ignore[no-redef]
+        def _decorator(fn):
+            return fn
+
+        if _args and callable(_args[0]):
+            return _args[0]
+        return _decorator
+
+    def get_client():  # type: ignore[no-redef]
+        return None
+
+    @contextmanager  # type: ignore[no-redef]
+    def propagate_attributes(**_kwargs):
+        yield
+
 logger = logging.getLogger(__name__)
 
 # How long to wait between checks for avatar selection (seconds)
@@ -42,6 +62,7 @@ class PipelineService:
         self.job_store = job_store
         self.broadcaster = event_broadcaster
 
+    @observe(name="genflow.pipeline.full_run")
     async def run_full_pipeline(self, job_id: str, request: ScriptRequest):
         """Run the full automated pipeline as a background task.
 
@@ -53,6 +74,27 @@ class PipelineService:
         5. Generate videos with QC
         6. Stitch final commercial
         """
+        trace_input = {
+            "product_name": getattr(request, "product_name", None),
+            "brand_guidelines": getattr(request, "brand_guidelines", None),
+            "target_audience": getattr(request, "target_audience", None),
+            "num_scenes": getattr(request, "num_scenes", None),
+        }
+        lf = get_client()
+        if lf is not None:
+            lf.update_current_span(input=trace_input)
+        try:
+            with propagate_attributes(
+                session_id=job_id,
+                tags=["pipeline", "full_run"],
+                metadata={"job_id": job_id},
+            ):
+                return await self._run_full_pipeline_impl(job_id, request)
+        finally:
+            if lf is not None:
+                lf.flush()
+
+    async def _run_full_pipeline_impl(self, job_id: str, request: ScriptRequest):
         try:
             # Mark job as running
             self.job_store.update_job(job_id, status=JobStatus.RUNNING)
@@ -227,8 +269,26 @@ class PipelineService:
             f"Avatar selection timed out after {_AVATAR_WAIT_TIMEOUT}s for job {job_id}"
         )
 
+    @observe(name="genflow.pipeline.step")
     async def run_step(self, job_id: str, step: str, **kwargs):
         """Run a single pipeline step for manual/step-by-step API usage."""
+        scalar_kwargs = {k: v for k, v in kwargs.items() if isinstance(v, (str, int, float, bool))}
+        trace_input = {"step": step, **scalar_kwargs}
+        lf = get_client()
+        if lf is not None:
+            lf.update_current_span(input=trace_input)
+        try:
+            with propagate_attributes(
+                session_id=job_id,
+                tags=["pipeline", "step", step],
+                metadata={"job_id": job_id, "step": step},
+            ):
+                return await self._run_step_impl(job_id, step, **kwargs)
+        finally:
+            if lf is not None:
+                lf.flush()
+
+    async def _run_step_impl(self, job_id: str, step: str, **kwargs):
         job = self.job_store.get_job(job_id)
         if job is None:
             raise ValueError(f"Job {job_id} not found")

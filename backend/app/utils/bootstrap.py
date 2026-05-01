@@ -41,3 +41,9 @@ def materialize_adc() -> None:
 
 
 materialize_adc()
+
+# Initialize Langfuse + OpenInference instrumentors AFTER ADC is in place but
+# BEFORE the application imports google-adk / google-genai (which happens via
+# app.api in main.py). Order matters: the instrumentors patch the SDKs at
+# import time.
+from . import observability  # noqa: E402,F401

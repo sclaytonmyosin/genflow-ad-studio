@@ -14,6 +14,9 @@ dependencies = [
     "httpx>=0.27.0",
     "python-multipart>=0.0.12",
     "requests>=2.32.0",
+    "langfuse>=3.5.2",
+    "openinference-instrumentation-google-adk>=0.1.0",
+    "openinference-instrumentation-google-genai>=0.1.0",
 ]
 
 [build-system]
