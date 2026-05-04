@@ -6,6 +6,10 @@ from app.models.common import QCScore
 from app.models.storyboard import StoryboardQCReport
 from app.models.video import VideoQCDimension, VideoQCReport, VideoVariant
 
+# === pantheon: brand_fit ===
+from app.services.brand_qc_integration import score_brand_fit
+
+
 logger = logging.getLogger(__name__)
 
 
