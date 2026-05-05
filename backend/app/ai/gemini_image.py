@@ -16,6 +16,7 @@ import logging
 
 from google import genai
 from google.genai import types
+from google.genai.types import PersonGeneration
 
 from app.ai.retry import async_retry
 from app.config import Settings
@@ -83,11 +84,19 @@ class GeminiImageService:
                 image_config=types.ImageConfig(
                     aspect_ratio=aspect_ratio,
                     image_size=image_size,
+                    # Required for presenters / human avatars; default blocks people.
+                    person_generation=PersonGeneration.ALLOW_ADULT,
                 ),
             ),
         )
 
-        for part in response.candidates[0].content.parts:
+        if not response.candidates:
+            fb = getattr(response, "prompt_feedback", None)
+            raise ValueError(f"No response candidates (image may be blocked). prompt_feedback={fb}")
+
+        cand = response.candidates[0]
+        parts = cand.content.parts if cand.content else []
+        for part in parts:
             if part.inline_data and part.inline_data.data:
                 return part.inline_data.data
 
@@ -118,14 +127,17 @@ class GeminiImageService:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         images: list[bytes] = []
+        errors: list[str] = []
         for i, result in enumerate(results):
             if isinstance(result, Exception):
                 logger.error("Avatar variant %d failed: %s", i, result)
+                errors.append(f"variant {i}: {result}")
             else:
                 images.append(result)
 
         if not images:
-            raise ValueError("All avatar generation attempts failed")
+            detail = "; ".join(errors[:4]) if errors else "unknown"
+            raise ValueError(f"All avatar generation attempts failed ({detail})")
 
         return images
 
@@ -156,11 +168,18 @@ class GeminiImageService:
                 image_config=types.ImageConfig(
                     aspect_ratio=aspect_ratio,
                     image_size=image_size,
+                    person_generation=PersonGeneration.ALLOW_ADULT,
                 ),
             ),
         )
 
-        for part in response.candidates[0].content.parts:
+        if not response.candidates:
+            fb = getattr(response, "prompt_feedback", None)
+            raise ValueError(f"No storyboard candidates. prompt_feedback={fb}")
+
+        cand = response.candidates[0]
+        parts = cand.content.parts if cand.content else []
+        for part in parts:
             if part.inline_data and part.inline_data.data:
                 return part.inline_data.data
 
