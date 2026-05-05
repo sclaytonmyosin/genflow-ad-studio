@@ -6,8 +6,8 @@ export const AD_TONES = ['energetic', 'sophisticated', 'playful', 'authoritative
 // ─── Script Models (multi-provider) ─────────────────────────
 export const SCRIPT_MODELS: ScriptModelOption[] = [
   // ── Google (Vertex AI) ──
-  { id: 'gemini-2.5-flash',  label: 'Gemini 2.5 Flash',  provider: 'Google',    description: 'Fast & capable (default)' },
-  { id: 'gemini-2.5-pro',    label: 'Gemini 2.5 Pro',    provider: 'Google',    description: 'Highest quality' },
+  { id: 'gemini-2.5-flash',  label: 'Gemini 2.5 Flash',  provider: 'Google',    description: 'Fast iteration' },
+  { id: 'gemini-2.5-pro',    label: 'Gemini 2.5 Pro',    provider: 'Google',    description: 'Highest quality (default)' },
   // ── Anthropic (via OpenRouter) ──
   { id: 'anthropic/claude-opus-4-5',    label: 'Claude Opus 4',    provider: 'Anthropic', description: 'Best reasoning & creativity' },
   { id: 'anthropic/claude-sonnet-4-5',  label: 'Claude Sonnet 4',  provider: 'Anthropic', description: 'Balanced speed & quality' },
@@ -27,7 +27,8 @@ export const SCRIPT_MODELS: ScriptModelOption[] = [
 // Legacy alias so existing code referencing GEMINI_MODELS still works
 export const GEMINI_MODELS = SCRIPT_MODELS;
 
-export const DEFAULT_SCRIPT_MODEL = 'gemini-2.5-flash';
+/** Default favors quality for final creative output; switch to Flash in-product for speed. */
+export const DEFAULT_SCRIPT_MODEL = 'gemini-2.5-pro';
 
 // Provider badge colors
 export const PROVIDER_COLORS: Record<string, string> = {

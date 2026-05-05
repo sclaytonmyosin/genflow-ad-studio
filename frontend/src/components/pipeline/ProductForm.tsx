@@ -38,7 +38,7 @@ import {
   ArrowBack,
 } from '@mui/icons-material';
 import type { ScriptRequest, SampleProduct } from '../../types';
-import { AD_TONES, GEMINI_MODELS } from '../../constants/controls';
+import { AD_TONES, DEFAULT_SCRIPT_MODEL, GEMINI_MODELS } from '../../constants/controls';
 import {
   listSamples,
   uploadImage,
@@ -62,7 +62,7 @@ export default function ProductForm({ onSubmit, isLoading, readOnly = false, ini
     image_url: '',
     scene_count: 3,
     ad_tone: 'energetic',
-    gemini_model: 'gemini-2.5-flash',
+    gemini_model: DEFAULT_SCRIPT_MODEL,
   });
   const [selectedSample, setSelectedSample] = useState<string | null>(null);
   const [scrollOffset, setScrollOffset] = useState(0);
@@ -119,6 +119,10 @@ export default function ProductForm({ onSubmit, isLoading, readOnly = false, ini
       custom_instructions:
         payload.request.custom_instructions || prev.custom_instructions,
     }));
+    if (payload.suggested_product_image_prompt) {
+      setGeneratePrompt(payload.suggested_product_image_prompt);
+      setImageTab(2);
+    }
   }, [readOnly, initialRequest]);
 
   // Load samples on mount
@@ -639,7 +643,7 @@ export default function ProductForm({ onSubmit, isLoading, readOnly = false, ini
             </Tooltip>
             <FormControl size="small" fullWidth>
               <Select
-                value={formData.gemini_model ?? 'gemini-2.5-flash'}
+                value={formData.gemini_model ?? DEFAULT_SCRIPT_MODEL}
                 onChange={(e: SelectChangeEvent) =>
                   setFormData((prev) => ({ ...prev, gemini_model: e.target.value }))
                 }
@@ -816,8 +820,10 @@ function BriefHandoffBanner({
           {payload.brief.concept.title}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, lineHeight: 1.55 }}>
-          Brand DNA, archetype, audio + value-prop locks have been pre-loaded into the
-          script direction. Pick a product image and generate.
+          Brand DNA rides in{' '}
+          <code className="mono text-[11px] text-[#22d3ee]">custom_instructions</code>.
+          Your AI product shot prompt is pre-filled — open{' '}
+          <strong>AI Generate</strong> and tap Generate, or pick a sample / upload.
         </Typography>
 
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1.25 }}>

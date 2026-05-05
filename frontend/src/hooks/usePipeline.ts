@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { usePipelineStore } from '../store/pipelineStore';
 import * as pipelineApi from '../api/pipeline';
 import { apiUrl } from '../lib/url';
+import { DEFAULT_SCRIPT_MODEL } from '../constants/controls';
 import type {
   ScriptRequest,
   VideoScript,
@@ -59,7 +60,7 @@ export function usePipeline() {
       store.setError(null);
       // Store the original request so ProductForm can show it on resume
       usePipelineStore.setState({ originalRequest: request });
-      store.addLog(`Starting script generation (model: ${request.gemini_model || 'gemini-3-flash-preview'})...`, 'info');
+      store.addLog(`Starting script generation (model: ${request.gemini_model || DEFAULT_SCRIPT_MODEL})...`, 'info');
 
       // Pre-generate run_id so we can open SSE log channel before the POST
       const preRunId = request.run_id || Math.random().toString(36).slice(2, 14);
