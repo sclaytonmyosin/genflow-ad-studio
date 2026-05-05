@@ -128,28 +128,49 @@ def get_universal_llm_service() -> UniversalLLMService:
 
 @lru_cache
 def get_gemini_api_client():
-    """Non-Vertex Gemini API client — higher quota for image generation.
+    """Non-Vertex Gemini API client — image generation must not use Vertex RPM.
 
-    GOOGLE_GENAI_USE_VERTEXAI=TRUE is a global env var that overrides every
-    genai.Client instance, including ones built with an api_key.
-    We temporarily pop it so the SDK routes to generativelanguage.googleapis.com
-    (Gemini API) instead of aiplatform.googleapis.com (Vertex AI).
-    The @lru_cache means this only runs once at startup.
+    Doppler often sets GOOGLE_GENAI_USE_VERTEXAI / GOOGLE_GENAI_USE_ENTERPRISE for
+    Veo + ADC. Those flags make google.genai prefer aiplatform.googleapis.com.
+    We pop them only while constructing this client so Imagen calls use the
+    developer API (GEMINI_API_KEY, generativelanguage.googleapis.com).
     """
+    import logging
     import os
+
     from google import genai as _genai
+
+    log = logging.getLogger(__name__)
     settings = get_settings()
     api_key = settings.gemini_api_key or os.environ.get("GEMINI_API_KEY", "")
     if not api_key:
         raise ValueError("GEMINI_API_KEY not set in Doppler genflow/prd")
 
-    # Temporarily unset the global Vertex AI flag for this client construction
-    _saved = os.environ.pop("GOOGLE_GENAI_USE_VERTEXAI", None)
+    _saved_vert = os.environ.pop("GOOGLE_GENAI_USE_VERTEXAI", None)
+    _saved_ent = os.environ.pop("GOOGLE_GENAI_USE_ENTERPRISE", None)
     try:
-        client = _genai.Client(api_key=api_key, vertexai=False)
+        client = _genai.Client(api_key=api_key.strip(), vertexai=False)
     finally:
-        if _saved is not None:
-            os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = _saved
+        if _saved_vert is not None:
+            os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = _saved_vert
+        if _saved_ent is not None:
+            os.environ["GOOGLE_GENAI_USE_ENTERPRISE"] = _saved_ent
+
+    if getattr(client, "vertexai", False):
+        raise RuntimeError(
+            "Gemini image client initialized with vertexai=True — check google-genai SDK / env."
+        )
+    try:
+        base_url = client._api_client._http_options.base_url or ""
+    except Exception:  # pragma: no cover
+        base_url = ""
+    if not base_url or "generativelanguage" not in base_url:
+        raise RuntimeError(
+            "Gemini image client must use generativelanguage.googleapis.com "
+            f"(got base_url={base_url!r}). "
+            "Unset GOOGLE_GENAI_USE_VERTEXAI / GOOGLE_GENAI_USE_ENTERPRISE for this client or fix SDK."
+        )
+    log.info("Gemini developer API client ready for image generation (base_url=%s)", base_url)
     return client
 
 
