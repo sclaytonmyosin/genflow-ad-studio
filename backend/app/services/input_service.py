@@ -7,6 +7,7 @@ from app.ai.gemini import GeminiService
 from app.ai.gemini_image import GeminiImageService
 from app.config import Settings
 from app.storage.local import LocalStorage
+from app.utils.paths import resolve_output_local_path
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +61,11 @@ class InputService:
 
     async def analyze_image(self, image_url: str) -> dict:
         """Read an image and extract product name + specifications via AI."""
-        # Load image bytes from local path or HTTP
-        if image_url.startswith("/output/"):
-            local_path = Path(self.settings.output_dir).resolve() / image_url.removeprefix("/output/")
+        output_root = Path(self.settings.output_dir).resolve()
+        local_path = resolve_output_local_path(image_url, output_root)
+        if local_path is None and image_url.startswith("/output/"):
+            local_path = output_root / image_url.removeprefix("/output/").lstrip("/")
+        if local_path is not None and local_path.is_file():
             image_bytes = local_path.read_bytes()
         else:
             import httpx
@@ -77,9 +80,24 @@ class InputService:
         return result
 
     def list_samples(self) -> list[dict]:
-        """Read sample products from samples.json."""
+        """Read sample products from samples.json.
+
+        Normalizes ``image_url`` / ``thumbnail`` to canonical ``/output/...``
+        paths so the API never returns ``localhost`` and the pipeline can load
+        files locally. The frontend prefixes BASE_URL for browser display.
+        """
         samples_path = Path(self.settings.output_dir).resolve() / "samples" / "samples.json"
         if not samples_path.exists():
             logger.warning("samples.json not found at %s", samples_path)
             return []
-        return json.loads(samples_path.read_text())
+        raw: list[dict] = json.loads(samples_path.read_text())
+        out: list[dict] = []
+        for row in raw:
+            item = dict(row)
+            sid = item.get("id")
+            if isinstance(sid, str) and sid:
+                canonical = f"/output/samples/{sid}.png"
+                item["image_url"] = canonical
+                item["thumbnail"] = canonical
+            out.append(item)
+        return out

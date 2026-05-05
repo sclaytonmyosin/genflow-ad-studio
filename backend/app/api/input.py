@@ -42,7 +42,17 @@ async def generate_image(request: GenerateImageRequest):
         image_url = await svc.generate_product_image(request.description)
     except Exception as e:
         logger.error("Image generation failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        msg = str(e)
+        if "429" in msg or "RESOURCE_EXHAUSTED" in msg or "Quota exceeded" in msg.lower():
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "Image generation hit a provider quota limit. "
+                    "Confirm GEMINI_API_KEY is set so product images use the Gemini API. "
+                    "Otherwise request a Vertex AI quota increase or wait and retry."
+                ),
+            )
+        raise HTTPException(status_code=500, detail=msg)
     return GenerateImageResponse(image_url=image_url)
 
 

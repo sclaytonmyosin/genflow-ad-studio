@@ -35,6 +35,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import AppBar from './AppBar';
 import Footer from './Footer';
 import InsightPanel from './InsightPanel';
+import AgentCopilot from './AgentCopilot';
 import { usePipelineStore } from '../../store/pipelineStore';
 
 const NAV_ITEMS = [
@@ -61,11 +62,32 @@ function StepIcon({
   icon
 }: {
   active: boolean;
-    completed: boolean;
+  completed: boolean;
   icon: React.ReactNode;
 }) {
-  if (completed || active) {
+  if (completed) {
     return <CheckCircle sx={{ color: 'success.main', fontSize: 32, transition: 'color 0.3s' }} />;
+  }
+  if (active) {
+    return (
+      <Box
+        sx={{
+          width: 32,
+          height: 32,
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #0066FF, #06b6d4)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 18,
+          color: '#fff',
+          animation: 'violet-pulse 2s ease-in-out infinite',
+          boxShadow: '0 0 16px rgba(6,182,212,0.55)',
+        }}
+      >
+        {icon}
+      </Box>
+    );
   }
   return (
     <Box
@@ -73,7 +95,8 @@ function StepIcon({
         width: 32,
         height: 32,
         borderRadius: '50%',
-        backgroundColor: 'action.disabledBackground',
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        border: '1px solid rgba(6,182,212,0.22)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -268,10 +291,15 @@ export default function MainLayout() {
                   width: 44,
                   height: 44,
                   borderRadius: 2,
-                  color: isActive ? 'primary.main' : 'text.secondary',
-                  backgroundColor: isActive ? 'primary.light' : 'transparent',
+                  color: isActive ? '#22d3ee' : 'text.secondary',
+                  backgroundColor: isActive ? 'rgba(6,182,212,0.10)' : 'transparent',
+                  boxShadow: isActive ? 'inset 0 0 0 1px rgba(6,182,212,0.30)' : 'none',
+                  transition: 'all 0.2s ease',
                   '&:hover': {
-                    backgroundColor: isActive ? 'primary.light' : 'action.hover',
+                    backgroundColor: isActive ? 'rgba(6,182,212,0.16)' : 'rgba(6,182,212,0.05)',
+                    color: '#22d3ee',
+                    transform: 'none',
+                    boxShadow: 'none',
                   },
                 }}
               >
@@ -301,19 +329,19 @@ export default function MainLayout() {
                 right: 'calc(50% + 16px)',
                 [`&.${stepConnectorClasses.active}`]: {
                   [`& .${stepConnectorClasses.line}`]: {
-                    borderColor: theme.palette.success.main,
+                    borderColor: '#22d3ee',
                   },
                 },
                 [`&.${stepConnectorClasses.completed}`]: {
                   [`& .${stepConnectorClasses.line}`]: {
-                    borderColor: theme.palette.success.main,
+                    borderColor: '#22d3ee',
                   },
                 },
                 [`& .${stepConnectorClasses.line}`]: {
-                  borderColor: theme.palette.divider,
+                  borderColor: 'rgba(6,182,212,0.22)',
                   borderTopWidth: 2,
                   borderRadius: 1,
-                  transition: 'border-color 0.3s ease',
+                  transition: 'border-color 0.4s ease',
                 },
               }}
             />
@@ -354,19 +382,19 @@ export default function MainLayout() {
                   }}
                   sx={{
                     '& .MuiStepLabel-label': {
-                      fontWeight: 600,
+                      fontWeight: 500,
                       color: 'text.secondary',
-                      fontSize: '0.9rem',
-                      letterSpacing: '0.01em',
+                      fontSize: '0.82rem',
+                      letterSpacing: '0.02em',
                       mt: 0.5,
                       transition: 'color 0.2s ease, font-weight 0.2s ease',
                     },
                     '& .MuiStepLabel-label.Mui-completed': {
                       color: 'text.primary',
-                      fontWeight: 700,
+                      fontWeight: 600,
                     },
                     '& .MuiStepLabel-label.Mui-active': {
-                      color: 'primary.main',
+                      color: '#22d3ee',
                       fontWeight: 700,
                     },
                   }}
@@ -396,18 +424,28 @@ export default function MainLayout() {
       <Footer />
 
       <InsightPanel />
+      
+      <AgentCopilot />
 
       {/* Floating log FAB */}
       <Fab
         size="medium"
-        color={logs.length > 0 && logs[logs.length - 1]?.level === 'error' ? 'error' : 'primary'}
         onClick={() => setLogPanelOpen(true)}
         sx={{
           position: 'fixed',
           right: 16,
           bottom: 24,
           zIndex: 1200,
+          background: logs.length > 0 && logs[logs.length - 1]?.level === 'error'
+            ? 'linear-gradient(135deg, #dc2626, #ef4444)'
+            : 'linear-gradient(135deg, #0B0E11, #12161B)',
+          border: '1px solid rgba(6,182,212,0.30)',
+          color: logs.length > 0 && logs[logs.length - 1]?.level === 'error' ? '#fff' : '#22d3ee',
           animation: hasNewLogs ? 'pulse 1s ease-in-out' : 'none',
+          '&:hover': {
+            background: 'linear-gradient(135deg, #12161B, #1A1F26)',
+            boxShadow: '0 6px 24px rgba(6,182,212,0.35)',
+          },
         }}
       >
         <Badge badgeContent={logs.length} color="error" max={99}>

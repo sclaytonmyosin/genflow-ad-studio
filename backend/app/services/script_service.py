@@ -16,6 +16,7 @@ from app.models.script import (
     VideoScript,
 )
 from app.storage.local import LocalStorage
+from app.utils.paths import resolve_output_local_path
 
 logger = logging.getLogger(__name__)
 
@@ -40,10 +41,13 @@ class ScriptService:
         run_id = request.run_id or uuid.uuid4().hex[:12]
 
         image_url = str(request.image_url)
+        output_root = Path(self.settings.output_dir).resolve()
 
-        # Load image bytes — local /output/ path or HTTP download
-        if image_url.startswith("/output/"):
-            local_path = Path(self.settings.output_dir).resolve() / image_url.removeprefix("/output/")
+        # Load image bytes — local /output/ path (with optional BASE_PATH) or HTTP
+        local_path = resolve_output_local_path(image_url, output_root)
+        if local_path is None and image_url.startswith("/output/"):
+            local_path = output_root / image_url.removeprefix("/output/").lstrip("/")
+        if local_path is not None and local_path.is_file():
             image_bytes = local_path.read_bytes()
             ext = local_path.suffix.lstrip(".")
             if ext not in ("png", "jpg", "jpeg", "webp"):

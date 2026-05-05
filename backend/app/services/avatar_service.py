@@ -9,6 +9,7 @@ from app.config import Settings
 from app.models.avatar import AvatarResponse, AvatarVariant
 from app.models.script import AvatarProfile
 from app.storage.local import LocalStorage
+from app.utils.paths import resolve_output_local_path
 
 logger = logging.getLogger(__name__)
 
@@ -68,12 +69,14 @@ class AvatarService:
         # If a reference image was uploaded, load its bytes for Gemini
         reference_bytes: bytes | None = None
         if reference_image_url:
-            # Convert URL path (/output/...) to absolute filesystem path
-            if reference_image_url.startswith("/output/"):
-                ref_path = self.storage.base_dir / reference_image_url[len("/output/"):]
-            else:
-                ref_path = Path(reference_image_url)
-            if ref_path.exists():
+            ref_path = resolve_output_local_path(
+                reference_image_url, self.storage.base_dir
+            )
+            if ref_path is None and reference_image_url.startswith("/output/"):
+                ref_path = self.storage.base_dir / reference_image_url[
+                    len("/output/") :
+                ].lstrip("/")
+            if ref_path is not None and ref_path.exists():
                 reference_bytes = ref_path.read_bytes()
 
         # Route to the appropriate image generation service

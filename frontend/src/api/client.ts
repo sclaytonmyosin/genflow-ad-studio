@@ -1,8 +1,8 @@
-const BASE_URL = '/api/v1';
+import { apiUrl } from '../lib/url';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const isFormData = options?.body instanceof FormData;
-  const response = await fetch(`${BASE_URL}${path}`, {
+  const response = await fetch(apiUrl(path), {
     ...options,
     headers: isFormData
       ? { ...options?.headers }

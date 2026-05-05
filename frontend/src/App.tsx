@@ -8,11 +8,19 @@ import ReviewPage from './components/pages/ReviewPage';
 import HistoryPage from './components/pages/HistoryPage';
 import HowItWorksPage from './components/pages/HowItWorksPage';
 
+// Strip trailing slash from Vite's BASE_URL so React Router gets a clean
+// basename (e.g. "/genflow/" → "/genflow"). For dev / single-app deploys
+// where BASE_URL = "/", basename is undefined (default).
+const BASENAME = (() => {
+  const b = (import.meta.env.BASE_URL || '/').replace(/\/+$/, '');
+  return b === '' ? undefined : b;
+})();
+
 function App() {
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={theme} defaultMode="dark">
       <CssBaseline />
-      <BrowserRouter>
+      <BrowserRouter basename={BASENAME}>
         <Routes>
           <Route element={<MainLayout />}>
             <Route path="/" element={<PipelinePage />} />

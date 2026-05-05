@@ -1,5 +1,14 @@
+import os
 import shutil
 from pathlib import Path
+
+
+def _url_prefix() -> str:
+    """Public-facing path prefix when deployed behind a reverse proxy
+    subpath (e.g. /genflow). Empty for local dev / root deploys.
+    """
+    raw = os.environ.get("BASE_PATH", "").strip().rstrip("/")
+    return raw  # already starts with "/" or is empty
 
 
 class LocalStorage:
@@ -48,15 +57,21 @@ class LocalStorage:
         return run_dir / filename
 
     def get_url_path(self, run_id: str, filename: str, subdir: str = "") -> str:
+        prefix = _url_prefix()
         if subdir:
-            return f"/output/{run_id}/{subdir}/{filename}"
-        return f"/output/{run_id}/{filename}"
+            return f"{prefix}/output/{run_id}/{subdir}/{filename}"
+        return f"{prefix}/output/{run_id}/{filename}"
 
     def to_url_path(self, abs_path: str) -> str:
-        """Convert an absolute file path to a URL-relative path for the frontend."""
+        """Convert an absolute file path to a URL-relative path for the frontend.
+
+        Honors BASE_PATH so /output/... URLs returned to the browser already
+        carry the deployment subpath (e.g. /genflow/output/...).
+        """
+        prefix = _url_prefix()
         try:
             rel = Path(abs_path).relative_to(self.base_dir)
-            return f"/output/{rel}"
+            return f"{prefix}/output/{rel}"
         except ValueError:
             return abs_path
 

@@ -1,80 +1,170 @@
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+/* ─────────────────────────────────────────
+   Myosin Executive Cockpit — Global Styles
+   Aligned with ops.myosin.io brand language.
+   ───────────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+:root {
+  --myosin-cyan: #06b6d4;
+  --myosin-cyan-bright: #22d3ee;
+  --myosin-cyan-soft: #67e8f9;
+  --myosin-blue: #0066FF;
+  --myosin-navy: #020617;
+  --myosin-surface: #0B0E11;
+  --myosin-surface-raised: #12161B;
 }
 
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+html {
+  color-scheme: dark;
 }
 
-@keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #020617;
+  overflow-x: hidden;
 }
 
-@keyframes auroraFlow {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 0% 50%;
-  }
+/* ── Cockpit background — subtle scanline grid + radial glow ── */
+.aurora-bg,
+.cockpit-bg {
+  position: relative;
+  background-color: #020617;
 }
 
-.aurora-bg {
-  background: linear-gradient(180deg, #E6F0FA 0%, #FAFAFA 400px);
-    background-attachment: fixed;
-    min-height: 100vh;
+.aurora-bg::before,
+.cockpit-bg::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 40% at 18% 8%, rgba(6, 182, 212, 0.08) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 35% at 82% 92%, rgba(0, 102, 255, 0.06) 0%, transparent 70%);
 }
 
-.dark .aurora-bg {
-  background: linear-gradient(180deg, rgba(16, 38, 70, 0.8) 0%, #131314 400px);
-    background-attachment: fixed;
-    min-height: 100vh;
+.aurora-bg::after,
+.cockpit-bg::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.30;
+  background-image:
+    linear-gradient(to right, rgba(6, 182, 212, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(6, 182, 212, 0.035) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 0%, transparent 75%);
+          mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, black 0%, transparent 75%);
 }
 
-.glass-panel {
-  background-color: rgba(255, 255, 255, 0.6) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  transition: background-color 0.3s ease, border-color 0.3s ease;
+.aurora-bg > *,
+.cockpit-bg > * {
+  position: relative;
+  z-index: 1;
 }
 
-.dark .glass-panel {
-  background-color: rgba(30, 31, 32, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+/* ── Light mode overrides ── */
+.color-scheme-light .aurora-bg,
+.color-scheme-light .cockpit-bg {
+  background-color: #F4F8FB;
 }
 
+.color-scheme-light .aurora-bg::before,
+.color-scheme-light .cockpit-bg::before {
+  background:
+    radial-gradient(ellipse 60% 40% at 18% 8%, rgba(6, 182, 212, 0.08) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 35% at 82% 92%, rgba(0, 102, 255, 0.05) 0%, transparent 70%);
+}
+
+.color-scheme-light .aurora-bg::after,
+.color-scheme-light .cockpit-bg::after {
+  opacity: 0.35;
+  background-image:
+    linear-gradient(to right, rgba(8, 145, 178, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(8, 145, 178, 0.06) 1px, transparent 1px);
+}
+
+/* ── Glass / console panel ── */
+.glass-panel,
+.console-panel {
+  background: rgba(11, 14, 17, 0.80) !important;
+  backdrop-filter: blur(8px) saturate(140%);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  border: 1px solid rgba(6, 182, 212, 0.14) !important;
+}
+
+.color-scheme-light .glass-panel,
+.color-scheme-light .console-panel {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(6, 182, 212, 0.14) !important;
+}
+
+/* ── File drop zone (used by ProductForm) ── */
 .file-drop-zone {
-  border: 2px dashed rgba(0, 0, 0, 0.12);
-  border-radius: 16px;
-  background-color: rgba(26, 115, 232, 0.03);
-  transition: all 0.2s ease-in-out;
+  border: 1px dashed rgba(6, 182, 212, 0.30);
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.40);
+  transition: border-color 0.2s ease, background 0.2s ease;
 }
-
 .file-drop-zone:hover {
-  border-color: #1A73E8;
-  background-color: rgba(26, 115, 232, 0.08);
+  border-color: rgba(34, 211, 238, 0.55);
+  background: rgba(6, 182, 212, 0.05);
 }
 
-.dark .file-drop-zone {
-  border-color: rgba(255, 255, 255, 0.12);
-  background-color: rgba(168, 199, 250, 0.04);
+/* ── Animations ── */
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.8; transform: scale(1.05); }
+}
+@keyframes violet-pulse {
+  /* legacy name kept for MainLayout's active step indicator */
+  0%, 100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.50); }
+  50%       { box-shadow: 0 0 0 8px rgba(6, 182, 212, 0); }
+}
+@keyframes cyan-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.55); }
+  50%       { box-shadow: 0 0 0 8px rgba(6, 182, 212, 0); }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.dark .file-drop-zone:hover {
-  border-color: #A8C7FA;
-  background-color: rgba(168, 199, 250, 0.08);
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(6, 182, 212, 0.25);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 182, 212, 0.50);
+}
+
+/* ── Selection ── */
+::selection {
+  background: rgba(6, 182, 212, 0.35);
+  color: #ffffff;
 }

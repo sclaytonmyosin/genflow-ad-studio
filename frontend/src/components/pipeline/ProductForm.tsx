@@ -33,6 +33,9 @@ import {
   Link as LinkIcon,
   Image as ImageIcon,
   AutoFixHigh,
+  Bolt,
+  Close as CloseIcon,
+  ArrowBack,
 } from '@mui/icons-material';
 import type { ScriptRequest, SampleProduct } from '../../types';
 import { AD_TONES, GEMINI_MODELS } from '../../constants/controls';
@@ -42,6 +45,8 @@ import {
   generateProductImage,
   analyzeImage,
 } from '../../api/pipeline';
+import { consumeBriefFromUrl, type BriefHandoffPayload } from '../../lib/briefHandoff';
+import { outputUrl } from '../../lib/url';
 
 interface ProductFormProps {
   onSubmit: (request: ScriptRequest) => Promise<void>;
@@ -57,7 +62,7 @@ export default function ProductForm({ onSubmit, isLoading, readOnly = false, ini
     image_url: '',
     scene_count: 3,
     ad_tone: 'energetic',
-    gemini_model: 'gemini-3-flash-preview',
+    gemini_model: 'gemini-2.5-flash',
   });
   const [selectedSample, setSelectedSample] = useState<string | null>(null);
   const [scrollOffset, setScrollOffset] = useState(0);
@@ -77,6 +82,9 @@ export default function ProductForm({ onSubmit, isLoading, readOnly = false, ini
   // Auto-fill
   const [autoFillLoading, setAutoFillLoading] = useState(false);
 
+  // Brief handoff (from boost-briefing-engine ?brief=… deep-link)
+  const [briefPayload, setBriefPayload] = useState<BriefHandoffPayload | null>(null);
+
   const visibleCount = 3;
   const maxOffset = Math.max(0, samples.length - visibleCount);
 
@@ -85,10 +93,33 @@ export default function ProductForm({ onSubmit, isLoading, readOnly = false, ini
     if (initialRequest) {
       setFormData(initialRequest);
       if (initialRequest.image_url) {
-        setImagePreview(initialRequest.image_url);
+        setImagePreview(outputUrl(initialRequest.image_url));
       }
     }
   }, [initialRequest]);
+
+  // Consume ?brief=… deep-link from boost-briefing-engine.
+  // Pre-populates everything except image_url, which the user picks here.
+  useEffect(() => {
+    if (readOnly || initialRequest) return;
+    const payload = consumeBriefFromUrl();
+    if (!payload) return;
+
+    setBriefPayload(payload);
+    setFormData((prev) => ({
+      ...prev,
+      product_name: payload.request.product_name || prev.product_name,
+      specifications: payload.request.specifications || prev.specifications,
+      ad_tone: payload.request.ad_tone || prev.ad_tone,
+      scene_count: payload.request.scene_count ?? prev.scene_count,
+      gemini_model: payload.request.gemini_model || prev.gemini_model,
+      max_dialogue_words_per_scene:
+        payload.request.max_dialogue_words_per_scene ??
+        prev.max_dialogue_words_per_scene,
+      custom_instructions:
+        payload.request.custom_instructions || prev.custom_instructions,
+    }));
+  }, [readOnly, initialRequest]);
 
   // Load samples on mount
   useEffect(() => {
@@ -113,7 +144,7 @@ export default function ProductForm({ onSubmit, isLoading, readOnly = false, ini
       image_url: sample.image_url,
     }));
     setSelectedSample(sample.id);
-    setImagePreview(sample.thumbnail);
+    setImagePreview(outputUrl(sample.thumbnail));
     setImageError(null);
   };
 
@@ -141,7 +172,7 @@ export default function ProductForm({ onSubmit, isLoading, readOnly = false, ini
     try {
       const res = await uploadImage(file);
       setFormData((prev) => ({ ...prev, image_url: res.image_url }));
-      setImagePreview(res.image_url);
+      setImagePreview(outputUrl(res.image_url));
       setSelectedSample(null);
     } catch (err) {
       setImageError(err instanceof Error ? err.message : 'Upload failed');
@@ -175,7 +206,7 @@ export default function ProductForm({ onSubmit, isLoading, readOnly = false, ini
     try {
       const res = await generateProductImage(generatePrompt);
       setFormData((prev) => ({ ...prev, image_url: res.image_url }));
-      setImagePreview(res.image_url);
+      setImagePreview(outputUrl(res.image_url));
       setSelectedSample(null);
     } catch (err) {
       setImageError(err instanceof Error ? err.message : 'Generation failed');
@@ -205,6 +236,17 @@ export default function ProductForm({ onSubmit, isLoading, readOnly = false, ini
   return (
     <Card sx={{ maxWidth: 1200, mx: 'auto', borderTop: '4px solid', borderTopColor: 'primary.main' }}>
       <CardContent sx={{ p: { xs: 3, md: 5 } }}>
+        {briefPayload && (
+          <BriefHandoffBanner
+            payload={briefPayload}
+            onDismiss={() => setBriefPayload(null)}
+            onApplySuggestedImagePrompt={(prompt) => {
+              setGeneratePrompt(prompt);
+              setImageTab(2);
+            }}
+          />
+        )}
+
         <Box sx={{ mb: 4 }}>
           <Typography variant="h4" sx={{ mb: 1, fontWeight: 700, letterSpacing: '-0.02em' }}>
             Create Video Campaign
@@ -275,7 +317,7 @@ export default function ProductForm({ onSubmit, isLoading, readOnly = false, ini
                       <CardMedia
                         component="img"
                         height={120}
-                        image={sample.thumbnail}
+                        image={outputUrl(sample.thumbnail)}
                         alt={sample.product_name}
                         sx={{
                           objectFit: 'cover',
@@ -392,8 +434,9 @@ export default function ProductForm({ onSubmit, isLoading, readOnly = false, ini
               label="Product Image URL"
               value={formData.image_url}
               onChange={(e) => {
-                setFormData((prev) => ({ ...prev, image_url: e.target.value }));
-                setImagePreview(e.target.value || null);
+                const v = e.target.value;
+                setFormData((prev) => ({ ...prev, image_url: v }));
+                setImagePreview(v ? outputUrl(v) : null);
                 setSelectedSample(null);
               }}
               fullWidth
@@ -596,7 +639,7 @@ export default function ProductForm({ onSubmit, isLoading, readOnly = false, ini
             </Tooltip>
             <FormControl size="small" fullWidth>
               <Select
-                value={formData.gemini_model ?? 'gemini-3-flash-preview'}
+                value={formData.gemini_model ?? 'gemini-2.5-flash'}
                 onChange={(e: SelectChangeEvent) =>
                   setFormData((prev) => ({ ...prev, gemini_model: e.target.value }))
                 }
@@ -678,5 +721,176 @@ export default function ProductForm({ onSubmit, isLoading, readOnly = false, ini
         </Grid>
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Provenance banner shown when the form was hydrated from a Briefing-Engine
+ * deep-link (?brief=...). Tightens the round-trip story between the two apps.
+ */
+const BRIEFING_ENGINE_URL =
+  (import.meta.env?.VITE_BRIEFING_ENGINE_URL as string | undefined) ??
+  'https://boost-briefing-engine.vercel.app';
+
+function BriefHandoffBanner({
+  payload,
+  onDismiss,
+  onApplySuggestedImagePrompt,
+}: {
+  payload: BriefHandoffPayload;
+  onDismiss: () => void;
+  /** Jump to AI Generate tab and pre-fill the prompt from the briefing handoff */
+  onApplySuggestedImagePrompt?: (prompt: string) => void;
+}) {
+  return (
+    <Box
+      sx={{
+        mb: 4,
+        p: { xs: 2, md: 2.5 },
+        borderRadius: 2,
+        border: '1px solid rgba(6, 182, 212, 0.30)',
+        background:
+          'linear-gradient(135deg, rgba(0,102,255,0.08) 0%, rgba(6,182,212,0.10) 100%)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 2,
+        animation: 'fadeInUp 0.4s ease',
+      }}
+    >
+      <Box
+        sx={{
+          width: 36,
+          height: 36,
+          borderRadius: 1.5,
+          background: 'linear-gradient(135deg, #0066FF, #06b6d4)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          boxShadow: '0 4px 16px rgba(0, 102, 255, 0.35)',
+          border: '1px solid rgba(34, 211, 238, 0.55)',
+        }}
+      >
+        <Bolt sx={{ color: '#fff', fontSize: 20 }} />
+      </Box>
+
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            flexWrap: 'wrap',
+            mb: 0.25,
+          }}
+        >
+          <Typography
+            variant="overline"
+            sx={{
+              color: '#22d3ee',
+              fontFamily: '"IBM Plex Mono", monospace',
+              letterSpacing: '0.22em',
+              fontSize: '0.62rem',
+              lineHeight: 1.2,
+              fontWeight: 500,
+            }}
+          >
+            // stacked from briefing engine
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{
+              color: 'text.disabled',
+              fontFamily: '"IBM Plex Mono", monospace',
+              fontSize: '0.62rem',
+            }}
+          >
+            · {payload.brief_id}
+          </Typography>
+        </Box>
+
+        <Typography
+          variant="subtitle1"
+          sx={{ fontWeight: 700, lineHeight: 1.25, letterSpacing: '-0.01em' }}
+        >
+          {payload.brief.concept.title}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, lineHeight: 1.55 }}>
+          Brand DNA, archetype, audio + value-prop locks have been pre-loaded into the
+          script direction. Pick a product image and generate.
+        </Typography>
+
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1.25 }}>
+          <Chip
+            size="small"
+            label={`visual · ${payload.brief.visuals.style} / ${payload.brief.visuals.format}`}
+            sx={{ height: 22, fontSize: '0.68rem' }}
+          />
+          <Chip
+            size="small"
+            label={`tone · ${payload.request.ad_tone}`}
+            sx={{ height: 22, fontSize: '0.68rem' }}
+          />
+          <Chip
+            size="small"
+            label={`${payload.brief.valueProp.price} · ${payload.brief.valueProp.offering}`}
+            sx={{ height: 22, fontSize: '0.68rem' }}
+          />
+          <Chip size="small" label="no voiceover" sx={{ height: 22, fontSize: '0.68rem' }} />
+        </Box>
+
+        <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+          {payload.suggested_product_image_prompt && onApplySuggestedImagePrompt && (
+            <Button
+              type="button"
+              size="small"
+              variant="contained"
+              startIcon={<ImageIcon sx={{ fontSize: 16 }} />}
+              onClick={() =>
+                onApplySuggestedImagePrompt(payload.suggested_product_image_prompt!)
+              }
+              sx={{ textTransform: 'none', fontWeight: 600 }}
+            >
+              Use briefing prompt → AI product shot
+            </Button>
+          )}
+          <Button
+            component="a"
+            href={BRIEFING_ENGINE_URL}
+            target="_blank"
+            rel="noreferrer"
+            size="small"
+            startIcon={<ArrowBack sx={{ fontSize: 14 }} />}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 500,
+              color: 'text.secondary',
+              fontFamily: '"IBM Plex Mono", monospace',
+              letterSpacing: '0.04em',
+              fontSize: '0.7rem',
+              px: 1,
+              minWidth: 0,
+              '&:hover': {
+                backgroundColor: 'transparent',
+                color: '#22d3ee',
+                transform: 'none',
+                boxShadow: 'none',
+              },
+            }}
+          >
+            edit brief in briefing engine
+          </Button>
+        </Box>
+      </Box>
+
+      <IconButton
+        size="small"
+        onClick={onDismiss}
+        sx={{ color: 'text.secondary' }}
+        aria-label="Dismiss brief banner"
+      >
+        <CloseIcon fontSize="small" />
+      </IconButton>
+    </Box>
   );
 }

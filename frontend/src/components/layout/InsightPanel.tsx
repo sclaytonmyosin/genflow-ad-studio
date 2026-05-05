@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { AutoAwesome, ChevronLeft, CheckCircle, OpenInFull, CloseFullscreen, Close } from '@mui/icons-material';
 import { usePipelineStore } from '../../store/pipelineStore';
+import { assetUrl } from '../../lib/url';
 
 const DIAGRAM_MAP: Record<number, string> = {
   0: 'product-input',
@@ -212,9 +213,9 @@ export default function InsightPanel() {
                     {diagramName ? (
                       <Box
                         component="img"
-                        src={`/asset/${diagramName}.webp`}
+                        src={assetUrl(`${diagramName}.webp`)}
                         alt={`${step.label} diagram`}
-                        onClick={() => setPreviewSrc(`/asset/${diagramName}.webp`)}
+                        onClick={() => setPreviewSrc(assetUrl(`${diagramName}.webp`))}
                         sx={{
                           mt: 1,
                           width: '100%',

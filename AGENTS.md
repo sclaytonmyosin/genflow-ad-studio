@@ -150,6 +150,31 @@ Named events: `addEventListener('scene_progress', handler)` and `addEventListene
 - Don't commit files in dot-folders (`.claude/`, `.gemini/`, `.playwright-mcp/`, etc.)
 - Don't add required fields to persisted Pydantic models -- use `Optional` with defaults
 
+## Agent skills
+
+### Issue tracker
+
+Issues, PRDs, and triage live in Linear. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) mapped to Linear labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context repo. `CONTEXT.md` + `docs/adr/` at the repo root, both created lazily by `/grill-with-docs`. See `docs/agents/domain.md`.
+
+## Working Discipline
+
+Behavioural rules for any agent editing this codebase. Bias toward caution over speed; use judgment for trivial tasks.
+
+1. **Think before coding.** State assumptions explicitly. If multiple interpretations exist, present them -- don't pick silently. If something is unclear, name it and ask.
+2. **Simplicity first.** Minimum code that solves the problem. No features beyond what was asked. No abstractions for single-use code. No flexibility or configurability that wasn't requested. If 200 lines could be 50, rewrite it.
+3. **Surgical changes.** Touch only what you must. Don't "improve" adjacent code, comments, or formatting. Match existing style. Every changed line should trace directly to the user's request. Remove orphans your changes created; leave pre-existing dead code alone unless asked.
+4. **Goal-driven execution.** Define verifiable success criteria up front (e.g. "write a test that reproduces the bug, then make it pass"). For multi-step work, state a brief numbered plan with a verify check on each step. `make check` is the default verify step in this repo.
+
+Source: derived from [Andrej Karpathy's observations](https://x.com/karpathy/status/2015883857489522876) on LLM coding pitfalls.
+
 ## Models Used
 
 | Model | ID | Purpose |

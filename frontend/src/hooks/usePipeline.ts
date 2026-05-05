@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { usePipelineStore } from '../store/pipelineStore';
 import * as pipelineApi from '../api/pipeline';
+import { apiUrl } from '../lib/url';
 import type {
   ScriptRequest,
   VideoScript,
@@ -20,7 +21,7 @@ function openSceneProgressSSE(
   runId: string,
   onSceneResult: (data: Record<string, unknown>) => void,
 ): EventSource {
-  const es = new EventSource(`/api/v1/jobs/${runId}/stream`);
+  const es = new EventSource(apiUrl(`/jobs/${runId}/stream`));
   es.addEventListener('scene_progress', (e: MessageEvent) => {
     try {
       const data = JSON.parse(e.data);

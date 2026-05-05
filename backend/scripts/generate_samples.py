@@ -325,7 +325,7 @@ async def main():
                 "id": sample["id"],
                 "product_name": sample["product_name"],
                 "specifications": sample["specifications"],
-                "image_url": f"http://localhost:8000/output/samples/{sample['id']}.png",
+                "image_url": f"/output/samples/{sample['id']}.png",
                 "thumbnail": f"/output/samples/{sample['id']}.png",
             }
         )

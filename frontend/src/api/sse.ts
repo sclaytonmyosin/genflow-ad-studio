@@ -1,11 +1,12 @@
 import type { SSEEvent } from '../types';
+import { apiUrl } from '../lib/url';
 
 export function createSSEConnection(
   jobId: string,
   onEvent: (event: SSEEvent) => void,
   onError?: (error: Event) => void
 ): EventSource {
-  const es = new EventSource(`/api/v1/jobs/${jobId}/stream`);
+  const es = new EventSource(apiUrl(`/jobs/${jobId}/stream`));
 
   es.onmessage = (e: MessageEvent) => {
     try {

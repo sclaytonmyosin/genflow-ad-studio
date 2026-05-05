@@ -4,6 +4,7 @@ from google import genai
 from google.cloud import storage
 
 from app.ai.gemini import GeminiService
+from app.ai.universal_llm import UniversalLLMService
 from app.ai.gemini_image import GeminiImageService
 from app.ai.imagen import ImagenService
 from app.ai.veo import VeoService
@@ -34,7 +35,11 @@ def get_settings() -> Settings:
 
 @lru_cache
 def get_genai_client() -> genai.Client:
+    import os
     settings = get_settings()
+    # Ensure GOOGLE_CLOUD_PROJECT is set so ADC can resolve the project
+    if settings.project_id:
+        os.environ.setdefault("GOOGLE_CLOUD_PROJECT", settings.project_id)
     return genai.Client(
         vertexai=True,
         project=settings.project_id,
@@ -117,8 +122,42 @@ def get_gemini_service() -> GeminiService:
 
 
 @lru_cache
+def get_universal_llm_service() -> UniversalLLMService:
+    return UniversalLLMService(genai_client=get_genai_client(), settings=get_settings())
+
+
+@lru_cache
+def get_gemini_api_client():
+    """Non-Vertex Gemini API client — higher quota for image generation.
+
+    GOOGLE_GENAI_USE_VERTEXAI=TRUE is a global env var that overrides every
+    genai.Client instance, including ones built with an api_key.
+    We temporarily pop it so the SDK routes to generativelanguage.googleapis.com
+    (Gemini API) instead of aiplatform.googleapis.com (Vertex AI).
+    The @lru_cache means this only runs once at startup.
+    """
+    import os
+    from google import genai as _genai
+    settings = get_settings()
+    api_key = settings.gemini_api_key or os.environ.get("GEMINI_API_KEY", "")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY not set in Doppler genflow/prd")
+
+    # Temporarily unset the global Vertex AI flag for this client construction
+    _saved = os.environ.pop("GOOGLE_GENAI_USE_VERTEXAI", None)
+    try:
+        client = _genai.Client(api_key=api_key, vertexai=False)
+    finally:
+        if _saved is not None:
+            os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = _saved
+    return client
+
+
+@lru_cache
 def get_gemini_image_service() -> GeminiImageService:
-    return GeminiImageService(client=get_genai_client(), settings=get_settings())
+    # Product / storyboard / avatar (non-Imagen) images: use Gemini API + API key
+    # so requests hit generativelanguage.googleapis.com, not Vertex Imagen RPM.
+    return GeminiImageService(client=get_gemini_api_client(), settings=get_settings())
 
 
 @lru_cache
@@ -147,13 +186,13 @@ def get_input_service() -> InputService:
 
 @lru_cache
 def get_qc_service() -> QCService:
-    return QCService(gemini=get_gemini_service(), settings=get_settings())
+    return QCService(gemini=get_universal_llm_service(), settings=get_settings())
 
 
 @lru_cache
 def get_script_service() -> ScriptService:
     return ScriptService(
-        gemini=get_gemini_service(),
+        gemini=get_universal_llm_service(),
         storage=get_local_storage(),
         settings=get_settings(),
     )

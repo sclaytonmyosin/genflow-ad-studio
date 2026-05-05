@@ -20,6 +20,7 @@ import {
   ContentCut,
   RateReview,
 } from '@mui/icons-material';
+import { assetUrl } from '../../lib/url';
 
 const PIPELINE_STEPS = [
   {
@@ -157,9 +158,9 @@ export default function HowItWorksPage() {
             <Typography variant="subtitle2" gutterBottom>Pipeline Flow</Typography>
             <Box
               component="img"
-              src="/asset/pipeline-flow.webp"
+              src={assetUrl('pipeline-flow.webp')}
               alt="Pipeline Flow"
-              onClick={() => setPreviewSrc('/asset/pipeline-flow.webp')}
+              onClick={() => setPreviewSrc(assetUrl('pipeline-flow.webp'))}
               sx={{
                 width: '100%',
                 borderRadius: 1,
@@ -177,9 +178,9 @@ export default function HowItWorksPage() {
             <Typography variant="subtitle2" gutterBottom>System Architecture</Typography>
             <Box
               component="img"
-              src="/asset/system-architecture.webp"
+              src={assetUrl('system-architecture.webp')}
               alt="System Architecture"
-              onClick={() => setPreviewSrc('/asset/system-architecture.webp')}
+              onClick={() => setPreviewSrc(assetUrl('system-architecture.webp'))}
               sx={{
                 width: '100%',
                 borderRadius: 1,
@@ -265,9 +266,9 @@ export default function HowItWorksPage() {
                     </Box>
                     <Box
                       component="img"
-                      src={`/asset/${step.diagram}.webp`}
+                      src={assetUrl(`${step.diagram}.webp`)}
                       alt={`${step.label} architecture diagram`}
-                      onClick={() => setPreviewSrc(`/asset/${step.diagram}.webp`)}
+                      onClick={() => setPreviewSrc(assetUrl(`${step.diagram}.webp`))}
                       sx={{
                         mt: 2,
                         width: '100%',
